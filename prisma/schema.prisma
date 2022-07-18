@@ -1,0 +1,87 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Rank {
+  id          Int      @id @default(autoincrement())
+  name        String
+  min_points  Int
+  max_points  Int
+  type        RankType
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  entities    Entity[]
+}
+
+enum RankType {
+  POINTS
+  POSITION
+}
+
+model Entity {
+  id        Int      @id @default(autoincrement())
+  name      String
+  rankTmp   Rank?    @relation(fields: [rankId], references: [id])
+  rankId    Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model User {
+  id          Int           @id @default(autoincrement())
+  name        String        @db.VarChar(50)
+  email       String        @unique @db.VarChar(255)
+  password    String        @db.Char(128)
+  permissions Int           @default(0)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  tokens      Token[]
+  access      UserSession[]
+}
+
+model UserSession {
+  id        Int       @id @default(autoincrement())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  token     String    @unique @db.Char(64)
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+enum LimiterType {
+  MINUTE
+  DAY
+  WEEK
+  MONTH
+}
+
+model TokenLimiter {
+  id          Int         @id @default(autoincrement())
+  description String      @db.VarChar(32)
+  limit       Int
+  type        LimiterType
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  tokens      Token[]
+}
+
+model Token {
+  id        Int          @id @default(autoincrement())
+  token     String       @db.Char(64)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  limiter   TokenLimiter @relation(fields: [limiterId], references: [id])
+  limiterId Int
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
